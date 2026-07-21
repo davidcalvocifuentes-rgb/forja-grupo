@@ -40,12 +40,13 @@
   .screen.active { display: block; }
 
   #loginScreen {
-    display: flex;
+    display: none;
     flex-direction: column;
     justify-content: center;
     min-height: 100vh;
     padding: 40px 0;
   }
+  #loginScreen.active { display: flex; }
   #loginScreen h1 {
     font-size: 42px;
     font-weight: 900;
