@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forja Grupo — Accountability</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root {
+    --bg: #0a0a0c;
+    --surface: #141418;
+    --surface2: #1c1c24;
+    --border: #2a2a35;
+    --text: #e8e8ec;
+    --text2: #90909e;
+    --gold: #d4a843;
+    --gold-dim: #2a1e08;
+    --fire: #e04a2f;
+    --steel: #4a7a9a;
+    --spirit: #8a5aaa;
+    --green: #2ecc71;
+    --green-dim: rgba(46,204,113,0.12);
+    --red-dim: rgba(224,74,47,0.12);
+  }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 12px 80px;
+  }
+  .container { max-width: 520px; width: 100%; }
+
+  /* LOGIN SCREEN */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  #loginScreen {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 40px 0;
+  }
+  #loginScreen h1 {
+    font-size: 42px;
+    font-weight: 900;
+    letter-spacing: 8px;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+  #loginScreen h1 .gold { color: var(--gold); }
+  #loginScreen h1 .dim { color: var(--text2); }
+  #loginScreen .sub {
+    text-align: center;
+    font-size: 10px;
+    color: var(--text2);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 40px;
+  }
+  .login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .login-form input {
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 16px;
+    outline: none;
+    transition: border .2s;
+  }
+  .login-form input:focus { border-color: var(--gold); }
+  .login-form input::placeholder { color: var(--text2); }
+  .login-form .btn-row {
+    display: flex;
+    gap: 8px;
+  }
+  .login-form button {
+    flex: 1;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .login-form .btn-login {
+    background: var(--surface);
+    color: var(--text);
+  }
+  .login-form .btn-login:hover { background: var(--surface2); border-color: var(--gold); }
+  .login-form .btn-register {
+    background: var(--gold-dim);
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+  .login-form .btn-register:hover { background: var(--gold); color: var(--bg); }
+  .login-error {
+    text-align: center;
+    font-size: 13px;
+    color: var(--fire);
+    margin-top: 8px;
+    min-height: 20px;
+  }
+
+  /* HEADER */
+  header {
+    text-align: center;
+    padding: 20px 0 12px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .logout-btn {
+    position: absolute;
+    right: 0;
+    top: 20px;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .logout-btn:hover { border-color: var(--fire); color: var(--fire); }
+  .logo { font-size: 24px; font-weight: 900; letter-spacing: 6px; text-transform: uppercase; }
+  .logo .gold { color: var(--gold); }
+  .logo .dim { color: var(--text2); }
+  .user-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    padding: 3px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 12px;
+    color: var(--text2);
+  }
+  .user-badge .avatar {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--surface2);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: var(--gold);
+  }
+
+  /* MY CHECK-IN */
+  .my-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .my-card .label-me {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text2);
+    margin-bottom: 10px;
+  }
+  .my-buttons {
+    display: flex;
+    gap: 6px;
+  }
+  .my-buttons button {
+    flex: 1;
+    padding: 14px 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    background: var(--surface);
+    color: var(--text2);
+    transition: all .2s;
+  }
+  .my-buttons button:hover { background: var(--surface2); }
+  .my-buttons button.on {
+    border-color: var(--green);
+    background: var(--green-dim);
+    color: var(--green);
+  }
+  .my-buttons button#btn-gym.on { border-color: var(--fire); background: rgba(224,74,47,0.15); color: var(--fire); }
+  .my-buttons button#btn-trabajo.on { border-color: var(--steel); background: rgba(74,122,154,0.15); color: var(--steel); }
+  .my-buttons button#btn-espiritu.on { border-color: var(--spirit); background: rgba(138,90,170,0.15); color: var(--spirit); }
+
+  /* STATS ROW */
+  .stats-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .stat-box {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+  }
+  .stat-box .num {
+    font-size: 22px;
+    font-weight: 900;
+  }
+  .stat-box .num span { font-size: 11px; font-weight: 400; color: var(--text2); }
+  .stat-box .num.fire { color: var(--fire); }
+  .stat-box .num.steel { color: var(--steel); }
+  .stat-box .num.spirit { color: var(--spirit); }
+  .stat-box .label {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text2);
+    margin-top: 3px;
+  }
+
+  /* LEADERBOARD */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-header h2 {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  .member-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(42,42,53,0.3);
+  }
+  .member-row:last-child { border-bottom: none; }
+  .member-row .rank {
+    font-size: 12px;
+    font-weight: 900;
+    color: var(--text2);
+    width: 20px;
+    text-align: center;
+  }
+  .member-row .rank.gold { color: var(--gold); }
+  .member-row .rank.silver { color: #9a9aaa; }
+  .member-row .rank.bronze { color: #cd7f32; }
+  .member-row .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--surface2); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: var(--text2);
+    text-transform: uppercase;
+  }
+  .member-row .name { flex: 1; font-size: 13px; font-weight: 600; }
+  .member-row .checks { display: flex; gap: 4px; }
+  .member-row .check {
+    width: 28px; height: 28px; border-radius: 5px;
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    background: var(--surface);
+  }
+  .member-row .check.on { border-color: var(--green); background: var(--green-dim); }
+  .member-row .check.on.fire-check { border-color: var(--fire); background: rgba(224,74,47,0.15); }
+  .member-row .check.on.steel-check { border-color: var(--steel); background: rgba(74,122,154,0.15); }
+  .member-row .check.on.spirit-check { border-color: var(--spirit); background: rgba(138,90,170,0.15); }
+  .member-row .score-badge {
+    font-size: 14px; font-weight: 900; color: var(--text);
+    min-width: 25px; text-align: right;
+  }
+
+  /* PROJECT LOG */
+  .project-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .project-card h3 {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 2px; color: var(--gold); margin-bottom: 10px;
+  }
+  .project-input-row {
+    display: flex; gap: 6px; margin-bottom: 10px;
+  }
+  .project-input-row input {
+    flex: 1; padding: 10px 12px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text); font-size: 13px;
+    outline: none;
+  }
+  .project-input-row input:focus { border-color: var(--gold); }
+  .project-input-row input::placeholder { color: var(--text2); }
+  .project-input-row button {
+    padding: 10px 16px;
+    background: var(--gold-dim); border: 1px solid var(--gold);
+    border-radius: 6px; color: var(--gold); font-weight: 700;
+    font-size: 12px; cursor: pointer; text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .project-input-row button:hover { background: var(--gold); color: var(--bg); }
+  .project-entry {
+    display: flex; gap: 8px; align-items: flex-start;
+    padding: 7px 0; border-bottom: 1px solid rgba(42,42,53,0.3);
+    font-size: 12px;
+  }
+  .project-entry:last-child { border-bottom: none; }
+  .project-entry .who { font-weight: 700; color: var(--gold); min-width: 55px; }
+  .project-entry .what { color: var(--text2); flex: 1; }
+  .project-entry .when { color: var(--text2); font-size: 10px; white-space: nowrap; }
+
+  /* STREAKS */
+  .streak-item-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 0; border-bottom: 1px solid rgba(42,42,53,0.3);
+  }
+  .streak-item-row:last-child { border-bottom: none; }
+  .streak-item-row .rank { font-size: 12px; font-weight: 900; color: var(--text2); width: 20px; text-align: center; }
+  .streak-item-row .rank.gold { color: var(--gold); }
+  .streak-item-row .avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--surface2); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: var(--text2);
+  }
+  .streak-item-row .name { flex: 1; font-size: 13px; font-weight: 600; }
+  .streak-item-row .streak-num {
+    font-size: 18px; font-weight: 900; color: var(--gold);
+  }
+  .streak-item-row .streak-label { font-size: 10px; color: var(--text2); }
+
+  /* TABS for sections */
+  .section-tabs {
+    display: flex; gap: 4px; margin-bottom: 12px;
+  }
+  .section-tab {
+    flex: 1; padding: 8px 0;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--text2); font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 1.5px;
+    cursor: pointer; border-radius: 6px; transition: all .2s;
+  }
+  .section-tab:hover { background: var(--surface2); }
+  .section-tab.active { border-color: var(--gold); color: var(--gold); background: var(--surface2); }
+
+  .section { display: none; }
+  .section.active { display: block; }
+
+  .loading {
+    text-align: center; padding: 40px 0; color: var(--text2);
+    font-size: 14px;
+  }
+  .loading .spinner {
+    display: inline-block; width: 24px; height: 24px;
+    border: 2px solid var(--border); border-top-color: var(--gold);
+    border-radius: 50%; animation: spin .8s linear infinite;
+    margin-bottom: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* WEEK */
+  .week-grid {
+    display: flex; gap: 3px; margin-top: 8px;
+  }
+  .week-day {
+    flex: 1; text-align: center; padding: 5px 0;
+    border-radius: 5px; font-size: 10px;
+    background: var(--surface); color: var(--text2);
+    border: 1px solid var(--border);
+  }
+  .week-day.today { border-color: var(--gold); color: var(--gold); }
+  .week-day.done { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+
+  /* RAFFLE / CHAMP */
+  .champ-box {
+    background: linear-gradient(135deg, var(--surface), var(--surface2));
+    border: 1px solid var(--gold); border-radius: 12px;
+    padding: 14px; text-align: center; margin-bottom: 12px;
+  }
+  .champ-box .title { font-size: 8px; text-transform: uppercase; letter-spacing: 3px; color: var(--text2); margin-bottom: 4px; }
+  .champ-box .winner { font-size: 20px; font-weight: 900; color: var(--gold); }
+  .champ-box .sub { font-size: 10px; color: var(--text2); margin-top: 3px; }
+
+  @media (max-width: 400px) {
+    .my-buttons button { font-size: 12px; padding: 12px 0; }
+    .member-row .check { width: 24px; height: 24px; font-size: 10px; }
+    .member-row .name { font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- LOGIN SCREEN -->
+  <div class="screen" id="loginScreen">
+    <h1><span class="gold">FORJA</span><span class="dim">GRUPO</span></h1>
+    <div class="sub">Accountability de hombres reales</div>
+    <div class="login-form">
+      <input type="text" id="loginName" placeholder="Tu nombre de guerra..." maxlength="20" autocomplete="off">
+      <div class="btn-row">
+        <button class="btn-login" id="btnLogin">Entrar</button>
+        <button class="btn-register" id="btnRegister">Registrarse</button>
+      </div>
+      <div class="login-error" id="loginError"></div>
+    </div>
+  </div>
+
+  <!-- MAIN SCREEN -->
+  <div class="screen" id="mainScreen">
+
+    <header>
+      <button class="logout-btn" id="btnLogout">✕</button>
+      <div class="logo"><span class="gold">FORJA</span><span class="dim">GRUPO</span></div>
+      <div class="user-badge">
+        <span class="avatar" id="myAvatar"></span>
+        <span id="myName"></span>
+      </div>
+    </header>
+
+    <!-- MY CHECK-IN -->
+    <div class="my-card">
+      <div class="label-me">👊 TU CHECK-IN HOY</div>
+      <div class="my-buttons">
+        <button id="btn-gym" data-pillar="gym">🏋️ Gym</button>
+        <button id="btn-trabajo" data-pillar="trabajo">💼 Trabajo</button>
+        <button id="btn-espiritu" data-pillar="espiritu">🙏 Espíritu</button>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-box"><div class="num fire" id="stat-gym">0</div><div class="label">🏋️ Gym</div></div>
+      <div class="stat-box"><div class="num steel" id="stat-trabajo">0</div><div class="label">💼 Trabajo</div></div>
+      <div class="stat-box"><div class="num spirit" id="stat-espiritu">0</div><div class="label">🙏 Espíritu</div></div>
+    </div>
+
+    <!-- CHAMP -->
+    <div class="champ-box" id="champBox">
+      <div class="title">🔥 RACHA MÁS LARGA</div>
+      <div class="winner" id="champName">—</div>
+      <div class="sub" id="champDays"></div>
+    </div>
+
+    <!-- SECTION TABS -->
+    <div class="section-tabs">
+      <button class="section-tab active" data-section="tabla">📊 Tabla</button>
+      <button class="section-tab" data-section="proyectos">🔨 Proyectos</button>
+      <button class="section-tab" data-section="rachas">🔥 Rachas</button>
+    </div>
+
+    <!-- TABLA -->
+    <div class="section active" id="section-tabla">
+      <div class="card">
+        <div class="card-header"><h2>📊 Tabla del día</h2></div>
+        <div id="boardList">
+          <div class="loading"><div class="spinner"></div>Cargando...</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h2>📅 Semana</h2></div>
+        <div class="week-grid" id="weekGrid"></div>
+      </div>
+    </div>
+
+    <!-- PROYECTOS -->
+    <div class="section" id="section-proyectos">
+      <div class="project-card">
+        <h3>🔨 ¿En qué trabajaste hoy?</h3>
+        <div class="project-input-row">
+          <input type="text" id="projectInput" placeholder="Tu proyecto/avance del día..." maxlength="200">
+          <button id="btnProject">Enviar</button>
+        </div>
+        <div id="projectList">
+          <div class="loading"><div class="spinner"></div>Cargando...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RACHAS -->
+    <div class="section" id="section-rachas">
+      <div class="card">
+        <div class="card-header"><h2>🔥 Rachas activas</h2></div>
+        <div id="streakList">
+          <div class="loading"><div class="spinner"></div>Cargando...</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const API = window.location.origin;
+let me = null; // { id, name }
+
+// ─── LOGIN ────────────────────────────────────────
+document.getElementById('btnLogin').addEventListener('click', () => login(false));
+document.getElementById('btnRegister').addEventListener('click', () => login(true));
+document.getElementById('loginName').addEventListener('keydown', e => {
+  if (e.key === 'Enter') login(false);
+});
+
+async function login(register) {
+  const name = document.getElementById('loginName').value.trim().toLowerCase();
+  if (!name) return showLoginError('Escribe tu nombre.');
+  const endpoint = register ? '/api/register' : '/api/login';
+  try {
+    const res = await fetch(API + endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    const data = await res.json();
+    if (!res.ok) return showLoginError(data.error);
+    me = data;
+    localStorage.setItem('forja-user', JSON.stringify(me));
+    enterApp();
+  } catch(e) {
+    showLoginError('Error de conexión');
+  }
+}
+
+function showLoginError(msg) {
+  document.getElementById('loginError').textContent = msg;
+}
+
+// ─── ENTER APP ────────────────────────────────────
+function enterApp() {
+  document.getElementById('loginScreen').classList.remove('active');
+  document.getElementById('mainScreen').classList.add('active');
+  document.getElementById('myName').textContent = me.name;
+  document.getElementById('myAvatar').textContent = me.name.charAt(0).toUpperCase();
+  loadAll();
+}
+
+// ─── LOGOUT ───────────────────────────────────────
+document.getElementById('btnLogout').addEventListener('click', () => {
+  localStorage.removeItem('forja-user');
+  me = null;
+  document.getElementById('mainScreen').classList.remove('active');
+  document.getElementById('loginScreen').classList.add('active');
+  document.getElementById('loginName').value = '';
+  document.getElementById('loginError').textContent = '';
+});
+
+// ─── CHECK-IN TOGGLE ──────────────────────────────
+document.querySelectorAll('.my-buttons button').forEach(btn => {
+  btn.addEventListener('click', async function() {
+    const pillar = this.dataset.pillar;
+    const isOn = this.classList.contains('on');
+    const endpoint = isOn ? 'DELETE' : 'POST';
+    try {
+      const res = await fetch(API + '/api/checkin', {
+        method: endpoint,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ member_id: me.id, pillar }),
+      });
+      if (res.ok) {
+        this.classList.toggle('on');
+        loadBoard();
+        loadStreaks();
+      }
+    } catch(e) {}
+  });
+});
+
+// ─── SECTION TABS ─────────────────────────────────
+document.querySelectorAll('.section-tab').forEach(tab => {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.section-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    this.classList.add('active');
+    document.getElementById('section-' + this.dataset.section).classList.add('active');
+  });
+});
+
+// ─── PROJECT ──────────────────────────────────────
+document.getElementById('btnProject').addEventListener('click', submitProject);
+document.getElementById('projectInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') submitProject();
+});
+
+async function submitProject() {
+  const desc = document.getElementById('projectInput').value.trim();
+  if (!desc) return;
+  try {
+    const res = await fetch(API + '/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ member_id: me.id, description: desc }),
+    });
+    if (res.ok) {
+      document.getElementById('projectInput').value = '';
+      loadProjects();
+    }
+  } catch(e) {}
+}
+
+// ─── LOAD ALL ─────────────────────────────────────
+function loadAll() {
+  loadBoard();
+  loadStreaks();
+  loadProjects();
+  loadWeek();
+}
+
+// ─── LOAD BOARD ───────────────────────────────────
+async function loadBoard() {
+  try {
+    const res = await fetch(API + '/api/board');
+    const data = await res.json();
+    renderBoard(data.board, data.stats);
+    updateMyButtons(data.board);
+  } catch(e) {}
+}
+
+function renderBoard(board, stats) {
+  // Stats
+  document.getElementById('stat-gym').textContent = stats.gym + '/' + stats.total;
+  document.getElementById('stat-trabajo').textContent = stats.trabajo + '/' + stats.total;
+  document.getElementById('stat-espiritu').textContent = stats.espiritu + '/' + stats.total;
+
+  // Board
+  const list = document.getElementById('boardList');
+  if (!board.length) {
+    list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text2);font-size:13px;">Aún no hay nadie registrado</div>';
+    return;
+  }
+  list.innerHTML = board.map((m, i) => `
+    <div class="member-row">
+      <div class="rank ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}">${i + 1}</div>
+      <div class="avatar" style="${m.name === me.name ? 'border-color:var(--gold);' : ''}">${m.avatar}</div>
+      <div class="name">${m.name} ${m.name === me.name ? '👈' : ''}</div>
+      <div class="checks">
+        <div class="check ${m.gym ? 'on fire-check' : ''}">🏋️</div>
+        <div class="check ${m.trabajo ? 'on steel-check' : ''}">💼</div>
+        <div class="check ${m.espiritu ? 'on spirit-check' : ''}">🙏</div>
+      </div>
+      <div class="score-badge">${m.score}</div>
+    </div>
+  `).join('');
+}
+
+function updateMyButtons(board) {
+  const meEntry = board.find(m => m.name === me.name);
+  if (meEntry) {
+    document.getElementById('btn-gym').classList.toggle('on', meEntry.gym);
+    document.getElementById('btn-trabajo').classList.toggle('on', meEntry.trabajo);
+    document.getElementById('btn-espiritu').classList.toggle('on', meEntry.espiritu);
+  }
+}
+
+// ─── LOAD STREAKS ─────────────────────────────────
+async function loadStreaks() {
+  try {
+    const res = await fetch(API + '/api/streaks');
+    const streaks = await res.json();
+    renderStreaks(streaks);
+  } catch(e) {}
+}
+
+function renderStreaks(streaks) {
+  // Champ
+  if (streaks.length) {
+    const top = streaks[0];
+    document.getElementById('champName').textContent = top.name.charAt(0).toUpperCase() + top.name.slice(1);
+    document.getElementById('champDays').textContent = '🔥 ' + top.streak + ' días seguidos';
+  }
+
+  // List
+  const list = document.getElementById('streakList');
+  list.innerHTML = streaks.map((s, i) => `
+    <div class="streak-item-row">
+      <div class="rank ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}">${i + 1}</div>
+      <div class="avatar">${s.avatar}</div>
+      <div class="name">${s.name}</div>
+      <div class="streak-num">${s.streak}</div>
+      <div class="streak-label">${s.streak === 1 ? 'día' : 'días'}</div>
+    </div>
+  `).join('');
+}
+
+// ─── LOAD PROJECTS ────────────────────────────────
+async function loadProjects() {
+  try {
+    const res = await fetch(API + '/api/projects');
+    const projects = await res.json();
+    const list = document.getElementById('projectList');
+    if (!projects.length) {
+      list.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text2);font-size:12px;">Nadie ha reportado proyectos hoy. ¡Sé el primero!</div>';
+      return;
+    }
+    list.innerHTML = projects.map(p => `
+      <div class="project-entry">
+        <span class="who">${p.member_name}:</span>
+        <span class="what">${escapeHtml(p.description)}</span>
+        <span class="when">${timeAgo(p.created_at)}</span>
+      </div>
+    `).join('');
+  } catch(e) {}
+}
+
+// ─── LOAD WEEK ────────────────────────────────────
+async function loadWeek() {
+  try {
+    const res = await fetch(API + '/api/history/7');
+    const data = await res.json();
+    const grid = document.getElementById('weekGrid');
+    const days = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    grid.innerHTML = data.history.map(h => {
+      const meEntry = h.entries.find(e => e.name === me.name);
+      const done = meEntry && meEntry.score >= 2;
+      const isToday = h.date === todayStr;
+      const d = new Date(h.date + 'T12:00:00');
+      const dayName = days[d.getDay()];
+      return `<div class="week-day ${isToday ? 'today' : ''} ${done ? 'done' : ''}">${dayName[0]}</div>`;
+    }).join('');
+  } catch(e) {}
+}
+
+// ─── UTILITIES ────────────────────────────────────
+function timeAgo(dateStr) {
+  const diff = Math.floor((Date.now() - new Date(dateStr + 'Z')) / 60000);
+  if (diff < 1) return 'ahora';
+  if (diff < 60) return `hace ${diff}m`;
+  const hrs = Math.floor(diff / 60);
+  return `hace ${hrs}h`;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ─── AUTO-LOGIN ON LOAD ──────────────────────────
+(function() {
+  const saved = localStorage.getItem('forja-user');
+  if (saved) {
+    try {
+      me = JSON.parse(saved);
+      enterApp();
+    } catch(e) {
+      localStorage.removeItem('forja-user');
+    }
+  }
+  // Auto-refresh every 30s
+  setInterval(() => {
+    if (me) loadAll();
+  }, 30000);
+})();
+</script>
+</body>
+</html>

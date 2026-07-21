@@ -1,0 +1,4 @@
+node_modules/
+forja.db
+*.db
+.env
