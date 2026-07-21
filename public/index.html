@@ -743,7 +743,7 @@ async function loadWeek() {
 
     grid.innerHTML = data.history.map(h => {
       const meEntry = h.entries.find(e => e.name === me.name);
-      const done = meEntry && meEntry.score >= 2;
+      const done = meEntry && meEntry.score >= 3;
       const isToday = h.date === todayStr;
       const d = new Date(h.date + 'T12:00:00');
       const dayName = days[d.getDay()];

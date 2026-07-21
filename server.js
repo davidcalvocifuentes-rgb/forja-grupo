@@ -160,7 +160,7 @@ app.get('/api/streaks', async (req, res) => {
           'SELECT COUNT(*) as cnt FROM checkins WHERE member_id = $1 AND date = $2',
           [m.id, dateStr]
         );
-        if (parseInt(rows[0].cnt) < 2) break;
+        if (parseInt(rows[0].cnt) < 3) break; // need ALL 3 to count as streak day
         streak++;
         d.setDate(d.getDate() - 1);
       }
