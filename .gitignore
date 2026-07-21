@@ -1,4 +1,8 @@
 node_modules/
 forja.db
+forja.db-shm
+forja.db-wal
 *.db
 .env
+push.sh
+deploy.sh
