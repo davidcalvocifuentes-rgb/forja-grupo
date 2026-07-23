@@ -56,12 +56,17 @@ async function initDb() {
     CREATE TABLE IF NOT EXISTS reactions (
       id SERIAL PRIMARY KEY,
       member_id INTEGER NOT NULL REFERENCES members(id),
-      target_date TEXT NOT NULL,
+      target_date TEXT,
+      target_type TEXT DEFAULT 'day' CHECK(target_type IN ('day','project')),
+      project_id INTEGER,
       reaction TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT NOW(),
-      UNIQUE(member_id, target_date, reaction)
+      UNIQUE(member_id, COALESCE(target_date,''), COALESCE(project_id,0), reaction)
     )
   `);
+  // Add columns for project reactions
+  try { await pool.query(`ALTER TABLE reactions ADD COLUMN IF NOT EXISTS target_type TEXT DEFAULT 'day'`); } catch(e) {}
+  try { await pool.query(`ALTER TABLE reactions ADD COLUMN IF NOT EXISTS project_id INTEGER`); } catch(e) {}
   // Add emoji column to projects if not exists
   try { await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS emoji TEXT DEFAULT '🔨'`); } catch(e) {}
   console.log('DB initialized');
@@ -172,7 +177,7 @@ app.get('/api/streaks', async (req, res) => {
           'SELECT COUNT(*) as cnt FROM checkins WHERE member_id = $1 AND date = $2',
           [m.id, dateStr]
         );
-        if (parseInt(rows[0].cnt) < 3) break; // need ALL 3 to count as streak day
+        if (parseInt(rows[0].cnt) < 1) break; // any pillar = streak
         streak++;
         d.setDate(d.getDate() - 1);
       }
@@ -216,14 +221,22 @@ app.get('/api/projects', async (req, res) => {
 
 // ─── REACTIONS ───────────────────────────────────────
 app.post('/api/reaction', async (req, res) => {
-  const { member_id, target_date, reaction } = req.body;
-  if (!member_id || !target_date || !reaction) return res.status(400).json({ error: 'member_id, target_date, reaction requeridos' });
+  const { member_id, target_date, project_id, reaction } = req.body;
+  if (!member_id || !reaction) return res.status(400).json({ error: 'member_id y reaction requeridos' });
   if (!['🔥','💪','👑','💀','🙌','😤'].includes(reaction)) return res.status(400).json({ error: 'Reacción inválida' });
+  const targetType = project_id ? 'project' : 'day';
   try {
-    await pool.query(
-      'INSERT INTO reactions (member_id, target_date, reaction) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
-      [member_id, target_date, reaction]
-    );
+    if (targetType === 'project') {
+      await pool.query(
+        'INSERT INTO reactions (member_id, target_type, project_id, reaction) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING',
+        [member_id, 'project', project_id, reaction]
+      );
+    } else {
+      await pool.query(
+        'INSERT INTO reactions (member_id, target_type, target_date, reaction) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING',
+        [member_id, 'day', target_date, reaction]
+      );
+    }
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -231,8 +244,18 @@ app.post('/api/reaction', async (req, res) => {
 app.get('/api/reactions/:date', async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT r.*, m.name as member_name FROM reactions r JOIN members m ON m.id = r.member_id WHERE r.target_date = $1 ORDER BY r.created_at`,
+      `SELECT r.*, m.name as member_name FROM reactions r JOIN members m ON m.id = r.member_id WHERE r.target_date = $1 AND (r.target_type = 'day' OR r.target_type IS NULL) ORDER BY r.created_at`,
       [req.params.date]
+    );
+    res.json(rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/reactions/project/:id', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT r.*, m.name as member_name FROM reactions r JOIN members m ON m.id = r.member_id WHERE r.project_id = $1 AND r.target_type = 'project' ORDER BY r.created_at`,
+      [req.params.id]
     );
     res.json(rows);
   } catch(e) { res.status(500).json({ error: e.message }); }

@@ -524,6 +524,7 @@
       <div class="title">🔥 RACHA MÁS LARGA</div>
       <div class="winner" id="champName">—</div>
       <div class="sub" id="champDays"></div>
+      <div class="sub" style="font-size:8px;color:var(--text2);margin-top:4px">Cualquier actividad cuenta · Día sin marcar = racha rota</div>
     </div>
 
     <!-- SECTION TABS -->
@@ -741,7 +742,42 @@ async function loadProjects() {
         <span class="what">${escapeHtml(p.description)}</span>
         <span class="when">${timeAgo(p.created_at)}</span>
       </div>
+      <div class="project-reactions" id="pr-${p.id}" style="display:flex;flex-wrap:wrap;gap:3px;padding:2px 0 6px 55px;border-bottom:1px solid rgba(42,42,53,0.3)">
+        <span style="font-size:11px;color:var(--text2)">Cargando...</span>
+      </div>
     `).join('');
+    // Load reactions for each project
+    projects.forEach(p => loadProjectReactions(p.id));
+  } catch(e) {}
+}
+
+let myProjectReactions = {};
+async function loadProjectReactions(projectId) {
+  try {
+    const res = await fetch(API + '/api/reactions/project/' + projectId);
+    const all = await res.json();
+    myProjectReactions[projectId] = new Set(all.filter(r => r.member_name === me.name).map(r => r.reaction));
+    const counts = {};
+    all.forEach(r => { counts[r.reaction] = (counts[r.reaction] || 0) + 1; });
+    const el = document.getElementById('pr-' + projectId);
+    if (!el) return;
+    const emojis = ['🔥','💪','👑'];
+    el.innerHTML = emojis.map(e => `
+      <button class="reaction-btn" style="width:24px;height:24px;font-size:12px" onclick="toggleProjectReaction(${projectId},'${e}')">
+        ${e}${counts[e]?`<span class="reaction-count">${counts[e]}</span>`:''}
+      </button>
+    `).join('');
+  } catch(e) {}
+}
+
+async function toggleProjectReaction(projectId, reaction) {
+  try {
+    const res = await fetch(API + '/api/reaction', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ member_id: me.id, project_id: projectId, reaction }),
+    });
+    if (res.ok) loadProjectReactions(projectId);
   } catch(e) {}
 }
 
