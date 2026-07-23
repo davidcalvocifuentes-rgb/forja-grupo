@@ -448,6 +448,13 @@
   .reactions-display { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 4px; }
   .reactions-display .rchip { display: inline-flex; align-items: center; gap: 2px; padding: 1px 5px; border-radius: 4px; background: var(--surface); border: 1px solid var(--border); font-size: 10px; }
 
+  /* PROJECT EMOJI */
+  .emoji-picker { display: flex; gap: 4px; margin-bottom: 6px; flex-wrap: wrap; }
+  .emoji-picker button { width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: all .12s; }
+  .emoji-picker button:hover { background: var(--surface2); border-color: var(--gold); }
+  .emoji-picker button.selected { background: rgba(212,168,67,0.2); border-color: var(--gold); }
+  .project-emoji { font-size: 14px; margin-right: 4px; }
+
   /* RAFFLE / CHAMP */
   .champ-box {
     background: linear-gradient(135deg, var(--surface), var(--surface2));
@@ -551,9 +558,10 @@
     <!-- PROYECTOS -->
     <div class="section" id="section-proyectos">
       <div class="project-card">
-        <h3>🔨 ¿En qué trabajaste hoy?</h3>
+        <h3>🔨 Proyectos del día</h3>
+        <div class="emoji-picker" id="emojiPicker"></div>
         <div class="project-input-row">
-          <input type="text" id="projectInput" placeholder="Tu proyecto/avance del día..." maxlength="200">
+          <input type="text" id="projectInput" placeholder="¿Qué estás construyendo?" maxlength="200">
           <button id="btnProject">Enviar</button>
         </div>
         <div id="projectList">
@@ -682,10 +690,25 @@ document.querySelectorAll('.section-tab').forEach(tab => {
 });
 
 // ─── PROJECT ──────────────────────────────────────
+const projectEmojis = ['📊','💻','📚','🎯','🏋️','💰','🎨','📝','🚀','🏠'];
+let selectedProjectEmoji = '📊';
+
 document.getElementById('btnProject').addEventListener('click', submitProject);
 document.getElementById('projectInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') submitProject();
 });
+
+// Init emoji picker
+function initEmojiPicker() {
+  const picker = document.getElementById('emojiPicker');
+  picker.innerHTML = projectEmojis.map(e =>
+    `<button onclick="selectProjectEmoji('${e}')" class="${e === selectedProjectEmoji ? 'selected' : ''}">${e}</button>`
+  ).join('');
+}
+function selectProjectEmoji(e) {
+  selectedProjectEmoji = e;
+  document.querySelectorAll('#emojiPicker button').forEach(b => b.classList.toggle('selected', b.textContent === e));
+}
 
 async function submitProject() {
   const desc = document.getElementById('projectInput').value.trim();
@@ -694,7 +717,7 @@ async function submitProject() {
     const res = await fetch(API + '/api/projects', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ member_id: me.id, description: desc }),
+      body: JSON.stringify({ member_id: me.id, description: desc, emoji: selectedProjectEmoji }),
     });
     if (res.ok) {
       document.getElementById('projectInput').value = '';
@@ -702,6 +725,28 @@ async function submitProject() {
     }
   } catch(e) {}
 }
+
+async function loadProjects() {
+  try {
+    const res = await fetch(API + '/api/projects');
+    const projects = await res.json();
+    const list = document.getElementById('projectList');
+    if (!projects.length) {
+      list.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text2);font-size:12px;">Nadie ha reportado proyectos hoy. ¡Sé el primero!</div>';
+      return;
+    }
+    list.innerHTML = projects.map(p => `
+      <div class="project-entry">
+        <span class="who">${p.emoji||'🔨'} ${p.member_name}:</span>
+        <span class="what">${escapeHtml(p.description)}</span>
+        <span class="when">${timeAgo(p.created_at)}</span>
+      </div>
+    `).join('');
+  } catch(e) {}
+}
+
+// Init emoji picker on load
+setTimeout(initEmojiPicker, 100);
 
 // ─── LOAD ALL ─────────────────────────────────────
 function loadAll() {

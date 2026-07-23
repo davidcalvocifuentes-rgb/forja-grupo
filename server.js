@@ -62,6 +62,8 @@ async function initDb() {
       UNIQUE(member_id, target_date, reaction)
     )
   `);
+  // Add emoji column to projects if not exists
+  try { await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS emoji TEXT DEFAULT '🔨'`); } catch(e) {}
   console.log('DB initialized');
 }
 
@@ -185,11 +187,11 @@ app.get('/api/streaks', async (req, res) => {
 
 // ─── PROJECTS ────────────────────────────────────────
 app.post('/api/projects', async (req, res) => {
-  const { member_id, description } = req.body;
+  const { member_id, description, emoji } = req.body;
   if (!member_id || !description) return res.status(400).json({ error: 'member_id y description requeridos' });
   const date = today();
   try {
-    await pool.query('INSERT INTO projects (member_id, description, date) VALUES ($1, $2, $3)', [member_id, description, date]);
+    await pool.query('INSERT INTO projects (member_id, description, date, emoji) VALUES ($1, $2, $3, $4)', [member_id, description, date, emoji || '🔨']);
     res.json({ ok: true });
   } catch(e) {
     res.status(500).json({ error: e.message });
