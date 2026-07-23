@@ -743,6 +743,7 @@ async function loadProjects() {
         <span class="who">${p.emoji||'🔨'} ${p.member_name}:</span>
         <span class="what">${escapeHtml(p.description)}</span>
         <span class="when">${timeAgo(p.created_at)}</span>
+        ${p.member_name === me.name ? `<span class="when" style="cursor:pointer;color:var(--fire);font-weight:700" onclick="deleteProject(${p.id})">✕</span>` : ''}
       </div>
       <div class="project-reactions" id="pr-${p.id}" style="display:flex;flex-wrap:wrap;gap:3px;padding:2px 0 6px 55px;border-bottom:1px solid rgba(42,42,53,0.3)">
         <span style="font-size:11px;color:var(--text2)">Cargando...</span>
@@ -750,6 +751,19 @@ async function loadProjects() {
     `).join('');
     // Load reactions for each project
     projects.forEach(p => loadProjectReactions(p.id));
+  } catch(e) {}
+}
+
+async function deleteProject(id) {
+  if (!confirm('¿Eliminar este proyecto?')) return;
+  try {
+    const res = await fetch(API + '/api/projects/' + id, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ member_id: me.id }),
+    });
+    if (res.ok) loadProjects();
+    else { const d = await res.json(); alert(d.error || 'Error'); }
   } catch(e) {}
 }
 
@@ -824,9 +838,9 @@ function renderBoard(board, stats) {
       <div class="avatar" style="${m.name === me.name ? 'border-color:var(--gold);' : ''}">${m.avatar}</div>
       <div class="name">${m.name} ${m.name === me.name ? '👈' : ''}</div>
       <div class="checks">
-        <div class="check ${m.gym ? 'on fire-check' : ''}">${m.gym ? '🏋️' : '—'}</div>
-        <div class="check ${m.trabajo ? 'on steel-check' : ''}">${m.trabajo ? '💼' : '—'}</div>
-        <div class="check ${m.espiritu ? 'on spirit-check' : ''}">${m.espiritu ? '🙏' : '—'}</div>
+        <div class="check ${m.gym ? 'on fire-check' : ''}">🏋️</div>
+        <div class="check ${m.trabajo ? 'on steel-check' : ''}">💼</div>
+        <div class="check ${m.espiritu ? 'on spirit-check' : ''}">🙏</div>
       </div>
       <div class="score-badge">${m.score}</div>
     </div>

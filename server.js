@@ -219,6 +219,18 @@ app.get('/api/projects', async (req, res) => {
   }
 });
 
+app.delete('/api/projects/:id', async (req, res) => {
+  const { member_id } = req.body;
+  if (!member_id) return res.status(400).json({ error: 'member_id requerido' });
+  try {
+    const { rows } = await pool.query('SELECT * FROM projects WHERE id = $1', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: 'Proyecto no encontrado' });
+    if (rows[0].member_id !== member_id) return res.status(403).json({ error: 'No puedes eliminar proyectos de otros' });
+    await pool.query('DELETE FROM projects WHERE id = $1', [req.params.id]);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // ─── REACTIONS ───────────────────────────────────────
 app.post('/api/reaction', async (req, res) => {
   const { member_id, target_date, project_id, reaction } = req.body;
