@@ -437,6 +437,7 @@
     .member-row .name { font-size: 12px; }
   }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
 <body>
 <div class="container">
@@ -509,7 +510,11 @@
       <div class="card">
         <div class="card-header"><h2>📈 Progreso Semanal</h2></div>
         <div class="card-b" style="padding:8px 12px">
-          <div class="week-chart-wrap" id="weekChart"></div>
+          <div style="position:relative;height:180px">
+            <canvas id="weekChart"></canvas>
+          </div>
+          <div class="week-legend" id="weekLegend"></div>
+          <div class="week-totals" id="weekTotals"></div>
         </div>
       </div>
     </div>
@@ -753,76 +758,105 @@ async function loadProjects() {
 }
 
 // ─── LOAD WEEK CHART ─────────────────────────────
+let weekChartInstance = null;
 async function loadWeek() {
   try {
     const res = await fetch(API + '/api/history/7');
     const data = await res.json();
-    const wrap = document.getElementById('weekChart');
     const days = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-    const todayStr = new Date().toISOString().split('T')[0];
-    const pillars = ['gym','trabajo','espiritu'];
-    const pColors = ['fire','steel','spirit'];
-    const pIcons = ['🏋️','💼','🙏'];
-    const pLabels = ['Gym','Trabajo','Espíritu'];
-
-    // Day name header
-    let html = '<div class="week-header"><div class="day-label" style="width:58px"></div>';
-    data.history.forEach(h => {
+    const labels = data.history.map(h => {
       const d = new Date(h.date + 'T12:00:00');
-      const isToday = h.date === todayStr;
-      html += `<div class="day-label ${isToday?'today':''}">${days[d.getDay()]}</div>`;
+      return days[d.getDay()];
     });
-    html += '</div>';
 
-    // For each logged-in member (just show all members, highlight current user)
-    const members = data.members || [];
-    
-    // Rows per pillar
-    pillars.forEach((pillar, pi) => {
-      html += `<div class="week-row">
-        <div class="pillar-label" style="color:var(--${pColors[pi]})">${pIcons[pi]} ${pLabels[pi]}</div>
-        <div class="bar-track">`;
-      data.history.forEach(h => {
-        const meEntry = h.entries.find(e => e.name === me.name);
-        const done = meEntry && meEntry[pillar];
-        const isToday = h.date === todayStr;
-        html += `<div class="bar-cell ${done?'done-'+pillar:''} ${isToday?'today':''}"></div>`;
+    // Destroy previous chart
+    if (weekChartInstance) { weekChartInstance.destroy(); weekChartInstance = null; }
+
+    // Build datasets: one line per member
+    const colors = ['#e04a2f','#4a7a9a','#8a5aaa','#d4a843','#2ecc71','#e67e22','#1abc9c','#c0392b','#3498db','#f39c12'];
+    const datasets = data.members.map((m, mi) => {
+      const values = data.history.map(h => {
+        const entry = h.entries.find(e => e.member_id === m.id);
+        return entry ? entry.score : 0;
       });
-      html += '</div></div>';
+      return {
+        label: m.name.charAt(0).toUpperCase() + m.name.slice(1),
+        data: values,
+        borderColor: colors[mi % colors.length],
+        backgroundColor: colors[mi % colors.length] + '22',
+        borderWidth: m.name === me.name ? 3 : 1.5,
+        pointRadius: m.name === me.name ? 4 : 2.5,
+        pointBackgroundColor: colors[mi % colors.length],
+        tension: 0.3,
+        fill: false,
+      };
     });
 
-    // Score row (0-3 per day)
-    html += '<div class="week-score-row"><div class="pillar-label" style="width:58px;font-size:8px">Puntos</div>';
-    data.history.forEach(h => {
-      const meEntry = h.entries.find(e => e.name === me.name);
-      const score = meEntry ? meEntry.score : 0;
-      const isToday = h.date === todayStr;
-      html += `<div class="score-cell score-${score} ${isToday?'today':''}">${score}</div>`;
+    const ctx = document.getElementById('weekChart').getContext('2d');
+    weekChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#141418',
+            titleColor: '#d4a843',
+            bodyColor: '#e8e8ec',
+            borderColor: '#2a2a35',
+            borderWidth: 1,
+            padding: 10,
+            callbacks: {
+              label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y}/3`
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: '#2a2a3522', drawBorder: false },
+            ticks: { color: '#90909e', font: { size: 10 } }
+          },
+          y: {
+            min: 0, max: 3,
+            grid: { color: '#2a2a3522', drawBorder: false },
+            ticks: { 
+              stepSize: 1,
+              color: '#90909e', 
+              font: { size: 10 },
+              callback: v => ['','','',''][v]
+            }
+          }
+        },
+        interaction: { mode: 'index', intersect: false }
+      }
     });
-    html += '</div>';
 
-    // Weekly totals for the current user
-    const gymTotal = data.history.reduce((s, h) => s + (h.entries.find(e => e.name === me.name)?.gym ? 1 : 0), 0);
-    const trabTotal = data.history.reduce((s, h) => s + (h.entries.find(e => e.name === me.name)?.trabajo ? 1 : 0), 0);
-    const espiTotal = data.history.reduce((s, h) => s + (h.entries.find(e => e.name === me.name)?.espiritu ? 1 : 0), 0);
-    const totalScore = gymTotal + trabTotal + espiTotal;
+    // Legend (member names with color dots)
+    const legendHtml = data.members.map((m, mi) => {
+      const isMe = m.name === me.name;
+      return `<span style="display:inline-flex;align-items:center;gap:4px;margin:0 6px;font-size:10px;color:${isMe?'var(--gold)':'var(--text2)'};font-weight:${isMe?'700':'400'}">
+        <span class="dot" style="background:${colors[mi % colors.length]}"></span>${m.name.charAt(0).toUpperCase()+m.name.slice(1)}
+      </span>`;
+    }).join('');
+    document.getElementById('weekLegend').innerHTML = `
+      <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:2px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+        ${legendHtml}
+      </div>`;
 
-    html += `<div class="week-totals">
-      <div class="total-box fire"><div class="num">${gymTotal}/7</div><div class="label">🏋️ Gym</div></div>
-      <div class="total-box steel"><div class="num">${trabTotal}/7</div><div class="label">💼 Trabajo</div></div>
-      <div class="total-box spirit"><div class="num">${espiTotal}/7</div><div class="label">🙏 Espíritu</div></div>
-      <div class="total-box total"><div class="num">${totalScore}/21</div><div class="label">⭐ Total</div></div>
-    </div>`;
-
-    // Legend
-    html += '<div class="week-legend">';
-    html += `<span><span class="dot" style="background:var(--fire)"></span> Gym</span>`;
-    html += `<span><span class="dot" style="background:var(--steel)"></span> Trabajo</span>`;
-    html += `<span><span class="dot" style="background:var(--spirit)"></span> Espíritu</span>`;
-    html += `<span><span class="dot" style="background:var(--gold)"></span> Hoy</span>`;
-    html += '</div>';
-
-    wrap.innerHTML = html;
+    // Totals for current user
+    const meEntries = data.history.map(h => h.entries.find(e => e.name === me.name));
+    const gymT = meEntries.filter(e => e?.gym).length;
+    const traT = meEntries.filter(e => e?.trabajo).length;
+    const espT = meEntries.filter(e => e?.espiritu).length;
+    document.getElementById('weekTotals').innerHTML = `
+      <div class="week-totals">
+        <div class="total-box fire"><div class="num">${gymT}/7</div><div class="label">🏋️ Gym</div></div>
+        <div class="total-box steel"><div class="num">${traT}/7</div><div class="label">💼 Trabajo</div></div>
+        <div class="total-box spirit"><div class="num">${espT}/7</div><div class="label">🙏 Espíritu</div></div>
+        <div class="total-box total"><div class="num">${gymT+traT+espT}/21</div><div class="label">⭐ Total</div></div>
+      </div>`;
   } catch(e) {}
 }
 
