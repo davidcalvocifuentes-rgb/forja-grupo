@@ -390,18 +390,36 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* WEEK */
-  .week-grid {
-    display: flex; gap: 3px; margin-top: 8px;
-  }
-  .week-day {
-    flex: 1; text-align: center; padding: 5px 0;
-    border-radius: 5px; font-size: 10px;
-    background: var(--surface); color: var(--text2);
-    border: 1px solid var(--border);
-  }
-  .week-day.today { border-color: var(--gold); color: var(--gold); }
-  .week-day.done { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+  /* WEEK CHART */
+  .week-chart-wrap { padding: 4px 0; }
+  .week-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+  .week-header .day-label { flex: 1; text-align: center; font-size: 9px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; }
+  .week-header .day-label.today { color: var(--gold); }
+  .week-row { display: flex; gap: 4px; margin-bottom: 4px; align-items: center; }
+  .week-row .pillar-label { width: 58px; font-size: 9px; color: var(--text2); text-align: right; padding-right: 6px; text-transform: uppercase; letter-spacing: 1px; flex-shrink: 0; }
+  .week-row .bar-track { flex: 1; display: flex; gap: 3px; }
+  .week-row .bar-cell { flex: 1; height: 18px; border-radius: 3px; background: var(--surface); border: 1px solid var(--border); transition: all .2s; }
+  .week-row .bar-cell.done-gym { background: rgba(224,74,47,0.6); border-color: var(--fire); }
+  .week-row .bar-cell.done-trabajo { background: rgba(74,122,154,0.6); border-color: var(--steel); }
+  .week-row .bar-cell.done-espiritu { background: rgba(138,90,170,0.6); border-color: var(--spirit); }
+  .week-row .bar-cell.today { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
+  .week-score-row { display: flex; gap: 3px; margin-top: 2px; }
+  .week-score-row .score-cell { flex: 1; text-align: center; font-size: 10px; font-weight: 700; color: var(--text2); padding: 2px 0; border-radius: 3px; }
+  .week-score-row .score-cell.score-3 { color: var(--green); }
+  .week-score-row .score-cell.score-2 { color: var(--gold); }
+  .week-score-row .score-cell.score-1 { color: var(--fire); }
+  .week-score-row .score-cell.today { background: rgba(212,168,67,0.1); border-radius: 3px; }
+  .week-legend { display: flex; gap: 12px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); justify-content: center; }
+  .week-legend span { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; }
+  .week-legend .dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+  .week-totals { display: flex; gap: 8px; margin-top: 8px; }
+  .week-totals .total-box { flex: 1; text-align: center; padding: 6px; border-radius: 6px; background: var(--surface); border: 1px solid var(--border); }
+  .week-totals .total-box .num { font-size: 16px; font-weight: 900; }
+  .week-totals .total-box .label { font-size: 8px; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); }
+  .week-totals .total-box.fire .num { color: var(--fire); }
+  .week-totals .total-box.steel .num { color: var(--steel); }
+  .week-totals .total-box.spirit .num { color: var(--spirit); }
+  .week-totals .total-box.total .num { color: var(--gold); }
 
   /* RAFFLE / CHAMP */
   .champ-box {
@@ -489,8 +507,10 @@
         </div>
       </div>
       <div class="card">
-        <div class="card-header"><h2>📅 Semana</h2></div>
-        <div class="week-grid" id="weekGrid"></div>
+        <div class="card-header"><h2>📈 Progreso Semanal</h2></div>
+        <div class="card-b" style="padding:8px 12px">
+          <div class="week-chart-wrap" id="weekChart"></div>
+        </div>
       </div>
     </div>
 
@@ -732,23 +752,77 @@ async function loadProjects() {
   } catch(e) {}
 }
 
-// ─── LOAD WEEK ────────────────────────────────────
+// ─── LOAD WEEK CHART ─────────────────────────────
 async function loadWeek() {
   try {
     const res = await fetch(API + '/api/history/7');
     const data = await res.json();
-    const grid = document.getElementById('weekGrid');
+    const wrap = document.getElementById('weekChart');
     const days = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
     const todayStr = new Date().toISOString().split('T')[0];
+    const pillars = ['gym','trabajo','espiritu'];
+    const pColors = ['fire','steel','spirit'];
+    const pIcons = ['🏋️','💼','🙏'];
+    const pLabels = ['Gym','Trabajo','Espíritu'];
 
-    grid.innerHTML = data.history.map(h => {
-      const meEntry = h.entries.find(e => e.name === me.name);
-      const done = meEntry && meEntry.score >= 3;
-      const isToday = h.date === todayStr;
+    // Day name header
+    let html = '<div class="week-header"><div class="day-label" style="width:58px"></div>';
+    data.history.forEach(h => {
       const d = new Date(h.date + 'T12:00:00');
-      const dayName = days[d.getDay()];
-      return `<div class="week-day ${isToday ? 'today' : ''} ${done ? 'done' : ''}">${dayName[0]}</div>`;
-    }).join('');
+      const isToday = h.date === todayStr;
+      html += `<div class="day-label ${isToday?'today':''}">${days[d.getDay()]}</div>`;
+    });
+    html += '</div>';
+
+    // For each logged-in member (just show all members, highlight current user)
+    const members = data.members || [];
+    
+    // Rows per pillar
+    pillars.forEach((pillar, pi) => {
+      html += `<div class="week-row">
+        <div class="pillar-label" style="color:var(--${pColors[pi]})">${pIcons[pi]} ${pLabels[pi]}</div>
+        <div class="bar-track">`;
+      data.history.forEach(h => {
+        const meEntry = h.entries.find(e => e.name === me.name);
+        const done = meEntry && meEntry[pillar];
+        const isToday = h.date === todayStr;
+        html += `<div class="bar-cell ${done?'done-'+pillar:''} ${isToday?'today':''}"></div>`;
+      });
+      html += '</div></div>';
+    });
+
+    // Score row (0-3 per day)
+    html += '<div class="week-score-row"><div class="pillar-label" style="width:58px;font-size:8px">Puntos</div>';
+    data.history.forEach(h => {
+      const meEntry = h.entries.find(e => e.name === me.name);
+      const score = meEntry ? meEntry.score : 0;
+      const isToday = h.date === todayStr;
+      html += `<div class="score-cell score-${score} ${isToday?'today':''}">${score}</div>`;
+    });
+    html += '</div>';
+
+    // Weekly totals for the current user
+    const gymTotal = data.history.reduce((s, h) => s + (h.entries.find(e => e.name === me.name)?.gym ? 1 : 0), 0);
+    const trabTotal = data.history.reduce((s, h) => s + (h.entries.find(e => e.name === me.name)?.trabajo ? 1 : 0), 0);
+    const espiTotal = data.history.reduce((s, h) => s + (h.entries.find(e => e.name === me.name)?.espiritu ? 1 : 0), 0);
+    const totalScore = gymTotal + trabTotal + espiTotal;
+
+    html += `<div class="week-totals">
+      <div class="total-box fire"><div class="num">${gymTotal}/7</div><div class="label">🏋️ Gym</div></div>
+      <div class="total-box steel"><div class="num">${trabTotal}/7</div><div class="label">💼 Trabajo</div></div>
+      <div class="total-box spirit"><div class="num">${espiTotal}/7</div><div class="label">🙏 Espíritu</div></div>
+      <div class="total-box total"><div class="num">${totalScore}/21</div><div class="label">⭐ Total</div></div>
+    </div>`;
+
+    // Legend
+    html += '<div class="week-legend">';
+    html += `<span><span class="dot" style="background:var(--fire)"></span> Gym</span>`;
+    html += `<span><span class="dot" style="background:var(--steel)"></span> Trabajo</span>`;
+    html += `<span><span class="dot" style="background:var(--spirit)"></span> Espíritu</span>`;
+    html += `<span><span class="dot" style="background:var(--gold)"></span> Hoy</span>`;
+    html += '</div>';
+
+    wrap.innerHTML = html;
   } catch(e) {}
 }
 
