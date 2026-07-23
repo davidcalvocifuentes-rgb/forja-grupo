@@ -288,16 +288,15 @@
     width: 28px; height: 28px; border-radius: 5px;
     border: 1px solid var(--border);
     display: flex; align-items: center; justify-content: center;
-    font-size: 12px;
+    font-size: 11px;
     background: var(--surface);
-    opacity: 0.25;
-    filter: grayscale(1);
+    color: var(--text2);
     transition: all .2s;
   }
-  .member-row .check.on { opacity: 1; filter: none; border-color: var(--green); background: var(--green-dim); }
-  .member-row .check.on.fire-check { border-color: var(--fire); background: rgba(224,74,47,0.15); }
-  .member-row .check.on.steel-check { border-color: var(--steel); background: rgba(74,122,154,0.15); }
-  .member-row .check.on.spirit-check { border-color: var(--spirit); background: rgba(138,90,170,0.15); }
+  .member-row .check.on { background: var(--surface2); border-color: var(--gold); color: var(--text); font-size: 13px; }
+  .member-row .check.on.fire-check { border-color: var(--fire); background: rgba(224,74,47,0.2); }
+  .member-row .check.on.steel-check { border-color: var(--steel); background: rgba(74,122,154,0.2); }
+  .member-row .check.on.spirit-check { border-color: var(--spirit); background: rgba(138,90,170,0.2); }
   .member-row .score-badge {
     font-size: 14px; font-weight: 900; color: var(--text);
     min-width: 25px; text-align: right;
@@ -825,9 +824,9 @@ function renderBoard(board, stats) {
       <div class="avatar" style="${m.name === me.name ? 'border-color:var(--gold);' : ''}">${m.avatar}</div>
       <div class="name">${m.name} ${m.name === me.name ? '👈' : ''}</div>
       <div class="checks">
-        <div class="check ${m.gym ? 'on fire-check' : ''}">🏋️</div>
-        <div class="check ${m.trabajo ? 'on steel-check' : ''}">💼</div>
-        <div class="check ${m.espiritu ? 'on spirit-check' : ''}">🙏</div>
+        <div class="check ${m.gym ? 'on fire-check' : ''}">${m.gym ? '🏋️' : '—'}</div>
+        <div class="check ${m.trabajo ? 'on steel-check' : ''}">${m.trabajo ? '💼' : '—'}</div>
+        <div class="check ${m.espiritu ? 'on spirit-check' : ''}">${m.espiritu ? '🙏' : '—'}</div>
       </div>
       <div class="score-badge">${m.score}</div>
     </div>
