@@ -60,13 +60,14 @@ async function initDb() {
       target_type TEXT DEFAULT 'day' CHECK(target_type IN ('day','project')),
       project_id INTEGER,
       reaction TEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT NOW(),
-      UNIQUE(member_id, COALESCE(target_date,''), COALESCE(project_id,0), reaction)
+      created_at TIMESTAMP DEFAULT NOW()
     )
   `);
   // Add columns for project reactions
   try { await pool.query(`ALTER TABLE reactions ADD COLUMN IF NOT EXISTS target_type TEXT DEFAULT 'day'`); } catch(e) {}
   try { await pool.query(`ALTER TABLE reactions ADD COLUMN IF NOT EXISTS project_id INTEGER`); } catch(e) {}
+  // Unique index for reactions (prevent duplicates)
+  try { await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_reactions_unique ON reactions(member_id, COALESCE(target_date,''), COALESCE(project_id,0), reaction)`); } catch(e) {}
   // Add emoji column to projects if not exists
   try { await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS emoji TEXT DEFAULT '🔨'`); } catch(e) {}
   console.log('DB initialized');
