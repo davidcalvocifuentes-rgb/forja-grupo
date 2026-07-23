@@ -421,6 +421,33 @@
   .week-totals .total-box.spirit .num { color: var(--spirit); }
   .week-totals .total-box.total .num { color: var(--gold); }
 
+  /* HEATMAP */
+  .heatmap-wrap { padding: 4px 0; }
+  .heatmap-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .heatmap-header .month-label { font-size: 11px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 2px; }
+  .heatmap-header .stats-label { font-size: 10px; color: var(--text2); }
+  .heatmap-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+  .heatmap-cell { aspect-ratio: 1; border-radius: 3px; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--text2); position: relative; cursor: pointer; transition: all .15s; }
+  .heatmap-cell:hover { transform: scale(1.15); z-index: 2; }
+  .heatmap-cell.today { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
+  .heatmap-cell.s-3 { background: rgba(46,204,113,0.35); border-color: #2ecc71; color: #2ecc71; }
+  .heatmap-cell.s-2 { background: rgba(212,168,67,0.25); border-color: #d4a843; color: #d4a843; }
+  .heatmap-cell.s-1 { background: rgba(224,74,47,0.2); border-color: #e04a2f; color: #e04a2f; }
+  .heatmap-cell .hm-tip { display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #141418; border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px; font-size: 8px; white-space: nowrap; z-index: 10; color: var(--text); }
+  .heatmap-cell:hover .hm-tip { display: block; }
+  .heatmap-legend { display: flex; gap: 4px; margin-top: 6px; justify-content: flex-end; align-items: center; }
+  .heatmap-legend span { font-size: 8px; color: var(--text2); }
+  .heatmap-legend .hl-cell { width: 12px; height: 12px; border-radius: 2px; border: 1px solid var(--border); }
+
+  /* REACTIONS */
+  .reaction-bar { display: flex; gap: 4px; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(42,42,53,0.3); }
+  .reaction-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+  .reaction-btn:hover { background: var(--surface2); border-color: var(--gold); transform: scale(1.1); }
+  .reaction-btn.active { background: rgba(212,168,67,0.2); border-color: var(--gold); }
+  .reaction-count { font-size: 9px; color: var(--text2); margin-left: 1px; }
+  .reactions-display { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 4px; }
+  .reactions-display .rchip { display: inline-flex; align-items: center; gap: 2px; padding: 1px 5px; border-radius: 4px; background: var(--surface); border: 1px solid var(--border); font-size: 10px; }
+
   /* RAFFLE / CHAMP */
   .champ-box {
     background: linear-gradient(135deg, var(--surface), var(--surface2));
@@ -497,6 +524,7 @@
       <button class="section-tab active" data-section="tabla">📊 Tabla</button>
       <button class="section-tab" data-section="proyectos">🔨 Proyectos</button>
       <button class="section-tab" data-section="rachas">🔥 Rachas</button>
+      <button class="section-tab" data-section="mes">📅 Mes</button>
     </div>
 
     <!-- TABLA -->
@@ -506,6 +534,7 @@
         <div id="boardList">
           <div class="loading"><div class="spinner"></div>Cargando...</div>
         </div>
+        <div class="reaction-bar" id="reactionBar"></div>
       </div>
       <div class="card">
         <div class="card-header"><h2>📈 Progreso Semanal</h2></div>
@@ -536,11 +565,29 @@
     <!-- RACHAS -->
     <div class="section" id="section-rachas">
       <div class="card">
-        <div class="card-header"><h2>🔥 Rachas activas</h2></div>
-        <div id="streakList">
-          <div class="loading"><div class="spinner"></div>Cargando...</div>
+        <div class="card-header"><h2>🔥 Rachas</h2></div>
+        <div id="streakList"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+      </div>
+    </div>
+
+    <!-- MES -->
+    <div class="section" id="section-mes">
+      <div class="card">
+        <div class="card-header"><h2>📆 Heatmap del Mes</h2></div>
+        <div class="card-b" style="padding:8px 12px">
+          <div class="heatmap-wrap" id="heatmapWrap"></div>
         </div>
       </div>
+      <div class="card">
+        <div class="card-header"><h2>📈 Tendencia 30 Días</h2></div>
+        <div class="card-b" style="padding:8px 12px">
+          <div style="position:relative;height:200px">
+            <canvas id="trendChart"></canvas>
+          </div>
+          <div class="week-legend" id="trendLegend"></div>
+        </div>
+      </div>
+    </div>
     </div>
 
   </div>
@@ -549,6 +596,7 @@
 <script>
 const API = window.location.origin;
 let me = null; // { id, name }
+let todayDate = ''; // used for reactions
 
 // ─── LOGIN ────────────────────────────────────────
 document.getElementById('btnLogin').addEventListener('click', () => login(false));
@@ -628,6 +676,8 @@ document.querySelectorAll('.section-tab').forEach(tab => {
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     this.classList.add('active');
     document.getElementById('section-' + this.dataset.section).classList.add('active');
+    // Lazy load month section
+    if (this.dataset.section === 'mes') loadMonth();
   });
 });
 
@@ -659,6 +709,7 @@ function loadAll() {
   loadStreaks();
   loadProjects();
   loadWeek();
+  loadMonth();
 }
 
 // ─── LOAD BOARD ───────────────────────────────────
@@ -666,6 +717,7 @@ async function loadBoard() {
   try {
     const res = await fetch(API + '/api/board');
     const data = await res.json();
+    todayDate = data.date;
     renderBoard(data.board, data.stats);
     updateMyButtons(data.board);
   } catch(e) {}
@@ -696,6 +748,9 @@ function renderBoard(board, stats) {
       <div class="score-badge">${m.score}</div>
     </div>
   `).join('');
+
+  // Load reactions for today
+  if (todayDate) loadReactions(todayDate);
 }
 
 function updateMyButtons(board) {
@@ -873,6 +928,170 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+// ─── REACTIONS ────────────────────────────────────
+let myReactions = new Set();
+async function loadReactions(date) {
+  try {
+    const res = await fetch(API + '/api/reactions/' + date);
+    const all = await res.json();
+    myReactions = new Set(all.filter(r => r.member_name === me.name).map(r => r.reaction));
+
+    // Count reactions per type
+    const counts = {};
+    all.forEach(r => { counts[r.reaction] = (counts[r.reaction] || 0) + 1; });
+
+    const bar = document.getElementById('reactionBar');
+    if (!bar) return;
+    const emojis = ['🔥','💪','👑','💀','🙌','😤'];
+    bar.innerHTML = emojis.map(e => `
+      <button class="reaction-btn ${myReactions.has(e)?'active':''}" onclick="toggleReaction('${e}')" title="${e}">
+        ${e}${counts[e]?`<span class="reaction-count">${counts[e]}</span>`:''}
+      </button>
+    `).join('');
+  } catch(e) {}
+}
+async function toggleReaction(reaction) {
+  try {
+    const res = await fetch(API + '/api/reaction', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ member_id: me.id, target_date: todayDate, reaction }),
+    });
+    if (res.ok) loadReactions(todayDate);
+  } catch(e) {}
+}
+
+// ─── HEATMAP + TREND 30 ───────────────────────────
+let trendChartInstance = null;
+async function loadMonth() {
+  try {
+    const res = await fetch(API + '/api/history/30');
+    const data = await res.json();
+    renderHeatmap(data);
+    renderTrend30(data);
+  } catch(e) {}
+}
+
+function renderHeatmap(data) {
+  const wrap = document.getElementById('heatmapWrap');
+  if (!wrap) return;
+  const days = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const history = data.history;
+
+  // Find which month most data falls in
+  const lastDate = history.length ? history[history.length-1].date : '';
+  const monthLabel = lastDate ? months[parseInt(lastDate.slice(5,7))-1] + ' ' + lastDate.slice(0,4) : '';
+
+  // Stats for the month (current user)
+  const meEntries = history.map(h => h.entries.find(e => e.name === me.name));
+  const total30 = meEntries.reduce((s, e) => s + (e ? e.score : 0), 0);
+  const days30 = meEntries.filter(e => e && e.score >= 3).length;
+
+  // Header
+  let html = `<div class="heatmap-header">
+    <div class="month-label">${monthLabel}</div>
+    <div class="stats-label">⭐ ${total30}/90 · 🏆 ${days30} días perfectos</div>
+  </div>`;
+
+  // Grid
+  html += '<div class="heatmap-grid">';
+  // Calculate offset to start from Monday
+  history.forEach((h, i) => {
+    const d = new Date(h.date + 'T12:00:00');
+    const dayOfWeek = d.getDay(); // 0=Sun
+    // Pad first row with empty cells
+    if (i === 0) { for (let p = 0; p < dayOfWeek; p++) html += '<div></div>'; }
+    const isToday = h.date === todayDate;
+    const entry = h.entries.find(e => e.name === me.name);
+    const score = entry ? entry.score : 0;
+    const isPerfect = entry && entry.gym && entry.trabajo && entry.espiritu;
+    html += `<div class="heatmap-cell ${isToday?'today':''} ${score>0?'s-'+score:''}" title="${days[dayOfWeek]} ${h.date.slice(8,10)}: ${score}/3">
+      ${h.date.slice(8,10)}
+      <div class="hm-tip">${days[dayOfWeek]} ${h.date.slice(8,10)} — ${score}/3 ${isPerfect?'🔥':''}</div>
+    </div>`;
+  });
+  html += '</div>';
+
+  // Legend
+  html += `<div class="heatmap-legend">
+    <span>Menos</span>
+    <span class="hl-cell" style="background:var(--surface)"></span>
+    <span class="hl-cell s-1"></span>
+    <span class="hl-cell s-2"></span>
+    <span class="hl-cell s-3"></span>
+    <span>Más</span>
+  </div>`;
+  wrap.innerHTML = html;
+}
+
+function renderTrend30(data) {
+  // Destroy previous
+  if (trendChartInstance) { trendChartInstance.destroy(); trendChartInstance = null; }
+
+  const canvas = document.getElementById('trendChart');
+  if (!canvas) return;
+  const days = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const labels = data.history.map(h => {
+    const d = new Date(h.date + 'T12:00:00');
+    return days[d.getDay()] + ' ' + h.date.slice(8,10);
+  });
+
+  const colors = ['#e04a2f','#4a7a9a','#8a5aaa','#d4a843','#2ecc71','#e67e22','#1abc9c','#c0392b','#3498db','#f39c12'];
+  const datasets = data.members.map((m, mi) => {
+    const values = data.history.map(h => {
+      const entry = h.entries.find(e => e.member_id === m.id);
+      return entry ? entry.score : 0;
+    });
+    return {
+      label: m.name.charAt(0).toUpperCase() + m.name.slice(1),
+      data: values,
+      borderColor: colors[mi % colors.length],
+      backgroundColor: colors[mi % colors.length] + '22',
+      borderWidth: m.name === me.name ? 3 : 1.5,
+      pointRadius: m.name === me.name ? 3 : 2,
+      pointBackgroundColor: colors[mi % colors.length],
+      tension: 0.3,
+      fill: false,
+    };
+  });
+
+  const ctx = canvas.getContext('2d');
+  trendChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#141418', titleColor: '#d4a843', bodyColor: '#e8e8ec',
+          borderColor: '#2a2a35', borderWidth: 1, padding: 10,
+          callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y}/3` }
+        }
+      },
+      scales: {
+        x: { grid: { color: '#2a2a3522', drawBorder: false }, ticks: { color: '#90909e', font: { size: 9 }, maxTicksLimit: 10 } },
+        y: { min: 0, max: 3, grid: { color: '#2a2a3522', drawBorder: false }, ticks: { stepSize: 1, color: '#90909e', font: { size: 10 }, callback: v => '' } }
+      },
+      interaction: { mode: 'index', intersect: false }
+    }
+  });
+
+  // Legend
+  const legendEl = document.getElementById('trendLegend');
+  if (legendEl) {
+    legendEl.innerHTML = `<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:2px;margin-top:6px">
+      ${data.members.map((m, mi) => {
+        const isMe = m.name === me.name;
+        return `<span style="display:inline-flex;align-items:center;gap:3px;margin:0 4px;font-size:9px;color:${isMe?'var(--gold)':'var(--text2)'};font-weight:${isMe?'700':'400'}">
+          <span class="dot" style="background:${colors[mi % colors.length]}"></span>${m.name.charAt(0).toUpperCase()+m.name.slice(1)}
+        </span>`;
+      }).join('')}
+    </div>`;
+  }
 }
 
 // ─── AUTO-LOGIN ON LOAD ──────────────────────────

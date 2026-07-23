@@ -52,6 +52,16 @@ async function initDb() {
       created_at TIMESTAMP DEFAULT NOW()
     )
   `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS reactions (
+      id SERIAL PRIMARY KEY,
+      member_id INTEGER NOT NULL REFERENCES members(id),
+      target_date TEXT NOT NULL,
+      reaction TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE(member_id, target_date, reaction)
+    )
+  `);
   console.log('DB initialized');
 }
 
@@ -200,6 +210,30 @@ app.get('/api/projects', async (req, res) => {
   } catch(e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+// ─── REACTIONS ───────────────────────────────────────
+app.post('/api/reaction', async (req, res) => {
+  const { member_id, target_date, reaction } = req.body;
+  if (!member_id || !target_date || !reaction) return res.status(400).json({ error: 'member_id, target_date, reaction requeridos' });
+  if (!['🔥','💪','👑','💀','🙌','😤'].includes(reaction)) return res.status(400).json({ error: 'Reacción inválida' });
+  try {
+    await pool.query(
+      'INSERT INTO reactions (member_id, target_date, reaction) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
+      [member_id, target_date, reaction]
+    );
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/reactions/:date', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT r.*, m.name as member_name FROM reactions r JOIN members m ON m.id = r.member_id WHERE r.target_date = $1 ORDER BY r.created_at`,
+      [req.params.date]
+    );
+    res.json(rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // ─── HISTORY ─────────────────────────────────────────
