@@ -285,18 +285,15 @@
   .member-row .name { flex: 1; font-size: 13px; font-weight: 600; }
   .member-row .checks { display: flex; gap: 4px; }
   .member-row .check {
-    width: 28px; height: 28px; border-radius: 5px;
-    border: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 11px;
-    background: var(--surface);
-    color: var(--text2);
+    width: 10px; height: 10px; border-radius: 50%;
+    border: 2px solid var(--border);
+    background: transparent;
     transition: all .2s;
   }
-  .member-row .check.on { background: var(--surface2); border-color: var(--gold); color: var(--text); font-size: 13px; }
-  .member-row .check.on.fire-check { border-color: var(--fire); background: rgba(224,74,47,0.2); }
-  .member-row .check.on.steel-check { border-color: var(--steel); background: rgba(74,122,154,0.2); }
-  .member-row .check.on.spirit-check { border-color: var(--spirit); background: rgba(138,90,170,0.2); }
+  .member-row .check.on { border-color: var(--gold); background: var(--gold); }
+  .member-row .check.on.fire-check { border-color: var(--fire); background: var(--fire); }
+  .member-row .check.on.steel-check { border-color: var(--steel); background: var(--steel); }
+  .member-row .check.on.spirit-check { border-color: var(--spirit); background: var(--spirit); }
   .member-row .score-badge {
     font-size: 14px; font-weight: 900; color: var(--text);
     min-width: 25px; text-align: right;
@@ -745,12 +742,7 @@ async function loadProjects() {
         <span class="when">${timeAgo(p.created_at)}</span>
         ${p.member_name === me.name ? `<span class="when" style="cursor:pointer;color:var(--fire);font-weight:700" onclick="deleteProject(${p.id})">✕</span>` : ''}
       </div>
-      <div class="project-reactions" id="pr-${p.id}" style="display:flex;flex-wrap:wrap;gap:3px;padding:2px 0 6px 55px;border-bottom:1px solid rgba(42,42,53,0.3)">
-        <span style="font-size:11px;color:var(--text2)">Cargando...</span>
-      </div>
     `).join('');
-    // Load reactions for each project
-    projects.forEach(p => loadProjectReactions(p.id));
   } catch(e) {}
 }
 
@@ -764,36 +756,6 @@ async function deleteProject(id) {
     });
     if (res.ok) loadProjects();
     else { const d = await res.json(); alert(d.error || 'Error'); }
-  } catch(e) {}
-}
-
-let myProjectReactions = {};
-async function loadProjectReactions(projectId) {
-  try {
-    const res = await fetch(API + '/api/reactions/project/' + projectId);
-    const all = await res.json();
-    myProjectReactions[projectId] = new Set(all.filter(r => r.member_name === me.name).map(r => r.reaction));
-    const counts = {};
-    all.forEach(r => { counts[r.reaction] = (counts[r.reaction] || 0) + 1; });
-    const el = document.getElementById('pr-' + projectId);
-    if (!el) return;
-    const emojis = ['🔥','💪','👑'];
-    el.innerHTML = emojis.map(e => `
-      <button class="reaction-btn" style="width:24px;height:24px;font-size:12px" onclick="toggleProjectReaction(${projectId},'${e}')">
-        ${e}${counts[e]?`<span class="reaction-count">${counts[e]}</span>`:''}
-      </button>
-    `).join('');
-  } catch(e) {}
-}
-
-async function toggleProjectReaction(projectId, reaction) {
-  try {
-    const res = await fetch(API + '/api/reaction', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ member_id: me.id, project_id: projectId, reaction }),
-    });
-    if (res.ok) loadProjectReactions(projectId);
   } catch(e) {}
 }
 
@@ -838,9 +800,9 @@ function renderBoard(board, stats) {
       <div class="avatar" style="${m.name === me.name ? 'border-color:var(--gold);' : ''}">${m.avatar}</div>
       <div class="name">${m.name} ${m.name === me.name ? '👈' : ''}</div>
       <div class="checks">
-        <div class="check ${m.gym ? 'on fire-check' : ''}">🏋️</div>
-        <div class="check ${m.trabajo ? 'on steel-check' : ''}">💼</div>
-        <div class="check ${m.espiritu ? 'on spirit-check' : ''}">🙏</div>
+        <div class="check ${m.gym ? 'on fire-check' : ''}"></div>
+        <div class="check ${m.trabajo ? 'on steel-check' : ''}"></div>
+        <div class="check ${m.espiritu ? 'on spirit-check' : ''}"></div>
       </div>
       <div class="score-badge">${m.score}</div>
     </div>
